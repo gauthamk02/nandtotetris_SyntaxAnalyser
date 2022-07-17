@@ -10,7 +10,7 @@ public class SyntaxAnalyser {
 
         String inFilename = args[0];
 
-        String outFilename = inFilename.substring(0, inFilename.lastIndexOf('.')) + ".xml";
+        String outFilename = inFilename.substring(0, inFilename.lastIndexOf('.')) + "Test.xml";
         File infile = new File(inFilename);
         Scanner filein;
         ArrayList<String> tokens = new ArrayList<>();
@@ -38,7 +38,7 @@ public class SyntaxAnalyser {
             for(String line : xmlFile) {
                 System.out.println(line);
             }
-            //writetoFile(xmlFile, outFilename);
+            writetoFile(xmlFile, outFilename);
 
         } catch (IOException e) {
             System.out.println(e);
