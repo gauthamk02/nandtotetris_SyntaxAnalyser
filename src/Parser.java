@@ -86,10 +86,10 @@ public class Parser {
 
     ArrayList<String> compileSubroutine(ArrayList<String> tokens) {
         ArrayList<String> subroutineOut = new ArrayList<>();
-        // if(getTokenClass(tokens.get(0)).equals("keyword") ||
-        // !getTokenValue(tokens.get(0)).equals("constructor") ||
-        // getTokenValue(tokens.get(0)).equals("function") ||
-        // getTokenValue(tokens.get(0)).equals("method")) {
+        // if(token0Class.equals("keyword") ||
+        // !token0Val.equals("constructor") ||
+        // token0Val.equals("function") ||
+        // token0Val.equals("method")) {
         // System.out.println("Error: Expected keyword constructor, function, or
         // method");
         // return null;
@@ -215,28 +215,6 @@ public class Parser {
         return letOut;
     }
 
-    // ArrayList<String> compileDo(ArrayList<String> token) {
-    //     int startInd = 0;
-    //     while(!getTokenValue(token.get(startInd)).equals("(")) {
-    //         startInd++;
-    //     }
-    //     startInd++;
-    //     ArrayList<String> doOut = new ArrayList<>();
-    //     doOut.add("  ".repeat(indent) + "<doStatement>");
-    //     indent += 1;
-    //     doOut.add("  ".repeat(indent) + "<keyword> do </keyword>");
-    //     doOut.add("  ".repeat(indent) + "<identifier> " + getTokenValue(token.get(1)) + " </identifier>");
-    //     doOut.add("  ".repeat(indent) + "<symbol> ( </symbol>");
-    //     indent += 1;
-    //     ArrayList<String> expressionList = new ArrayList<>(token.subList(startInd, token.size() - 2));
-    //     doOut.addAll(compileExpressionList(expressionList));
-    //     indent -= 1;
-    //     doOut.add("  ".repeat(indent) + "<symbol> ; </symbol>");
-    //     indent -= 1;
-    //     doOut.add("  ".repeat(indent) + "</doStatement>");
-    //     return doOut;
-    // }
-
     ArrayList<String> compileDo(ArrayList<String> token) {
         int startInd = 0;
         while(!getTokenValue(token.get(startInd)).equals("(")) {
@@ -273,6 +251,21 @@ public class Parser {
         return whileOut;
     }
 
+    ArrayList<String> compileReturn(ArrayList<String> tokens) {
+        ArrayList<String> returnOut = new ArrayList<>();
+        returnOut.add("  ".repeat(indent) + "<returnStatement>");
+        indent += 1;
+        returnOut.add("  ".repeat(indent) + "<keyword> " + getTokenValue(tokens.get(0)) + " </keyword>");
+        if (tokens.size() > 2) {
+            ArrayList<String> expressionTokens = getExpression(tokens, 1);
+            returnOut.addAll(compileExpression(expressionTokens, 0));
+        }
+        returnOut.add("  ".repeat(indent) + "<symbol> ; </symbol>");
+        indent -= 1;
+        returnOut.add("  ".repeat(indent) + "</returnStatement>");
+        return returnOut;
+    }
+
     ArrayList<String> compileStatements(ArrayList<String> tokens) {
         ArrayList<String> statementsOut = new ArrayList<>();
         statementsOut.add("  ".repeat(indent) + "<statements>");
@@ -306,7 +299,7 @@ public class Parser {
                     && tokenVal.equals("return")) {
                 ArrayList<String> returnTokens = getStatement(tokens, currLine);
                 currLine += returnTokens.size();
-                // statementsOut.addAll(compileReturn(returnTokens));
+                statementsOut.addAll(compileReturn(returnTokens));
             } else {
                 currLine += 1;
             }
@@ -380,32 +373,35 @@ public class Parser {
 
     ArrayList<String> compileTerm(ArrayList<String> tokens, boolean avoidTermTag) {
         ArrayList<String> termOut = new ArrayList<>();
+        String token0Class = getTokenClass(tokens.get(0));
+        String token0Val = getTokenValue(tokens.get(0));
+
         if(!avoidTermTag) termOut.add("  ".repeat(indent) + "<term>");
         indent += 1;
-        if (getTokenClass(tokens.get(0)).equals("integerConstant")) {
+        if (token0Class.equals("integerConstant")) {
             termOut.add(
-                    "  ".repeat(indent) + "<integerConstant> " + getTokenValue(tokens.get(0)) + " </integerConstant>");
-        } else if (getTokenClass(tokens.get(0)).equals("stringConstant")) {
+                    "  ".repeat(indent) + "<integerConstant> " + token0Val + " </integerConstant>");
+        } else if (token0Class.equals("stringConstant")) {
             termOut.add(
-                    "  ".repeat(indent) + "<stringConstant> " + getTokenValue(tokens.get(0)) + " </stringConstant>");
-        } else if (getTokenClass(tokens.get(0)).equals("keyword") && getTokenValue(tokens.get(0)).equals("true")) {
-            termOut.add("  ".repeat(indent) + "<keyword> " + getTokenValue(tokens.get(0)) + " </keyword>");
-        } else if (getTokenClass(tokens.get(0)).equals("keyword") && getTokenValue(tokens.get(0)).equals("false")) {
-            termOut.add("  ".repeat(indent) + "<keyword> " + getTokenValue(tokens.get(0)) + " </keyword>");
-        } else if (getTokenClass(tokens.get(0)).equals("keyword") && getTokenValue(tokens.get(0)).equals("null")) {
-            termOut.add("  ".repeat(indent) + "<keyword> " + getTokenValue(tokens.get(0)) + " </keyword>");
-        } else if (getTokenClass(tokens.get(0)).equals("identifier")) {
+                    "  ".repeat(indent) + "<stringConstant> " + token0Val + " </stringConstant>");
+        } else if (token0Class.equals("keyword") && token0Val.equals("true")) {
+            termOut.add("  ".repeat(indent) + "<keyword> " + token0Val + " </keyword>");
+        } else if (token0Class.equals("keyword") && token0Val.equals("false")) {
+            termOut.add("  ".repeat(indent) + "<keyword> " + token0Val + " </keyword>");
+        } else if (token0Class.equals("keyword") && token0Val.equals("null")) {
+            termOut.add("  ".repeat(indent) + "<keyword> " + token0Val + " </keyword>");
+        } else if (token0Class.equals("identifier")) {
 
             if (tokens.size() > 1) {
                 if (getTokenValue(tokens.get(1)).equals("[")) {
                     termOut.add(
-                            "  ".repeat(indent) + "<identifier> " + getTokenValue(tokens.get(0)) + " </identifier>");
+                            "  ".repeat(indent) + "<identifier> " + token0Val + " </identifier>");
                     termOut.add("  ".repeat(indent) + "<symbol> [ </symbol>");
                     termOut.addAll(compileExpression(tokens, 2));
                     termOut.add("  ".repeat(indent) + "<symbol> ] </symbol>");
                 } else if (getTokenValue(tokens.get(1)).equals("(")) {
                     termOut.add(
-                            "  ".repeat(indent) + "<identifier> " + getTokenValue(tokens.get(0)) + " </identifier>");
+                            "  ".repeat(indent) + "<identifier> " + token0Val + " </identifier>");
                     termOut.add("  ".repeat(indent) + "<symbol> ( </symbol>");
                     // termOut.addAll(compileExpressionList(tokens, 2));
                     termOut.add("  ".repeat(indent) + "<symbol> ) </symbol>");
@@ -418,7 +414,7 @@ public class Parser {
                         expressionList.add(tokens.get(i));
                     }
                     termOut.add(
-                            "  ".repeat(indent) + "<identifier> " + getTokenValue(tokens.get(0)) + " </identifier>");
+                            "  ".repeat(indent) + "<identifier> " + token0Val + " </identifier>");
                     termOut.add("  ".repeat(indent) + "<symbol> . </symbol>");
                     termOut.add(
                             "  ".repeat(indent) + "<identifier> " + getTokenValue(tokens.get(2)) + " </identifier>");
@@ -426,13 +422,13 @@ public class Parser {
                     termOut.addAll(compileExpressionList(expressionList));
                     termOut.add("  ".repeat(indent) + "<symbol> ) </symbol>");
                 } else {
-                    System.out.println("Error: " + getTokenValue(tokens.get(0)) + " is not a valid term");
+                    System.out.println("Error: " + token0Val + " is not a valid term");
                     return null;
                 }
             } else {
-                termOut.add("  ".repeat(indent) + "<identifier> " + getTokenValue(tokens.get(0)) + " </identifier>");
+                termOut.add("  ".repeat(indent) + "<identifier> " + token0Val + " </identifier>");
             }
-        } else if (getTokenClass(tokens.get(0)).equals("symbol") && getTokenValue(tokens.get(0)).equals("(")) {
+        } else if (token0Class.equals("symbol") && token0Val.equals("(")) {
             termOut.add("  ".repeat(indent) + "<symbol> ( </symbol>");
             // termOut.addAll(compileExpression(tokens.subList(1, tokens.size())));
             termOut.add("  ".repeat(indent) + "<symbol> ) </symbol>");
@@ -485,6 +481,11 @@ public class Parser {
     }
 
     String getTokenValue(String token) {
+        // if(getTokenClass(token).equals("stringConstant")) {
+        //     return token.substring(token.indexOf("> ") + 1, token.lastIndexOf(" </"));
+        // } else {
+        //     return token.substring(token.indexOf(">") + 1, token.lastIndexOf("<")).replace("/", "").trim();
+        // }
         return token.substring(token.indexOf(">") + 1, token.indexOf("</")).trim();
     }
 
