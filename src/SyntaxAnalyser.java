@@ -35,9 +35,9 @@ public class SyntaxAnalyser {
             Parser parser = new Parser(tokens);
 
             xmlFile = parser.parse();
-            for(String line : xmlFile) {
-                System.out.println(line);
-            }
+            // for(String line : xmlFile) {
+            //     System.out.println(line);
+            // }
             writetoFile(xmlFile, outFilename);
 
         } catch (IOException e) {
