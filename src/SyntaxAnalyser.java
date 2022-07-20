@@ -21,8 +21,8 @@ public class SyntaxAnalyser {
             Tokeniser tokeniser = new Tokeniser(jackFile);
             ArrayList<String> tokens = tokeniser.tokenise();
 
-            Parser parser = new Parser(tokens);
-            ArrayList<String> outFile = parser.parse();
+            CompilationEngine compilationEngine = new CompilationEngine(tokens);
+            ArrayList<String> outFile = compilationEngine.parse();
 
             writetoFile(outFile, outFilename);
             System.out.println("Output File stored at " + outFilename);
@@ -39,7 +39,7 @@ public class SyntaxAnalyser {
                     Tokeniser tokeniser = new Tokeniser(jackFile);
                     ArrayList<String> tokens = tokeniser.tokenise();
 
-                    Parser parser = new Parser(tokens);
+                    CompilationEngine parser = new CompilationEngine(tokens);
                     ArrayList<String> outFile = parser.parse();
 
                     writetoFile(outFile, outFilename);
