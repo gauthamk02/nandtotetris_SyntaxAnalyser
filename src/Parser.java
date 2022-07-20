@@ -9,7 +9,7 @@ public class Parser {
     static String[] termSeparators = { "+", "-", "*", "/", "&", "|", "<", ">", "=", ";", ",", ")", "]", "&lt;", "&gt;",
             "&amp;", "&amp;&amp;" };
     static String[] closingSymbols = { ")", "}", "]", ";" };
-
+    static String[] unaryOperators = { "-", "~" };
     private ArrayList<String> input;
     private int indent = 0;
 
@@ -55,7 +55,7 @@ public class Parser {
                 currLine += scope.size() - 1;
                 classOut.addAll(compileSubroutine(scope));
             } else if (tokenClass.equals("keyword")
-                    && tokenVal.equals("field")) {
+                    && (tokenVal.equals("field") || tokenVal.equals("static"))) {
                 ArrayList<String> scope = getStatement(tokens, currLine);
                 currLine += scope.size() - 1;
                 classOut.addAll(compileClassVarDec(scope));
@@ -96,7 +96,7 @@ public class Parser {
 
         subroutineOut.add("  ".repeat(indent) + "<symbol> ( </symbol>");
         ArrayList<String> parameterTokens = new ArrayList<>();
-        for(int i = 4; !getTokenValue(tokens.get(i)).equals(")"); i++) {
+        for (int i = 4; !getTokenValue(tokens.get(i)).equals(")"); i++) {
             parameterTokens.add(tokens.get(i));
         }
         subroutineOut.addAll(compileParameterList(parameterTokens));
@@ -142,7 +142,7 @@ public class Parser {
     ArrayList<String> compileParameterList(ArrayList<String> tokens) {
         ArrayList<String> parameterListOut = new ArrayList<>();
         parameterListOut.add("  ".repeat(indent) + "<parameterList>");
-        for(int i = 0; i < tokens.size(); i++) {
+        for (int i = 0; i < tokens.size(); i++) {
             parameterListOut.add("  ".repeat(indent) + tokens.get(i));
         }
         parameterListOut.add("  ".repeat(indent) + "</parameterList>");
@@ -160,7 +160,7 @@ public class Parser {
         } else {
             classVarDecOut.add("  ".repeat(indent) + "<identifier> " + feildType + " </identifier>");
         }
-        for(int i = 2; !getTokenValue(tokens.get(i)).equals(";"); i++) {
+        for (int i = 2; !getTokenValue(tokens.get(i)).equals(";"); i++) {
             classVarDecOut.add("  ".repeat(indent) + tokens.get(i));
         }
         classVarDecOut.add("  ".repeat(indent) + "<symbol> ; </symbol>");
@@ -247,24 +247,33 @@ public class Parser {
         return doOut;
     }
 
-    ArrayList<String> compileIf(ArrayList<String> tokens) {
+    ArrayList<String> compileIf(ArrayList<String> ifTokens, ArrayList<String> elseTokens) {
         ArrayList<String> ifOut = new ArrayList<>();
         ifOut.add("  ".repeat(indent) + "<ifStatement>");
         indent += 1;
-        ifOut.add("  ".repeat(indent) + "<keyword> " + getTokenValue(tokens.get(0)) + " </keyword>");
+        ifOut.add("  ".repeat(indent) + "<keyword> " + getTokenValue(ifTokens.get(0)) + " </keyword>");
         ifOut.add("  ".repeat(indent) + "<symbol> ( </symbol>");
         int tokenNo = 1;
-        ArrayList<String> expression = getExpression(tokens, tokenNo + 1);
+        ArrayList<String> expression = getExpression(ifTokens, tokenNo + 1);
         tokenNo += expression.size();
         ifOut.addAll(compileExpression(expression, 0));
         ifOut.add("  ".repeat(indent) + "<symbol> ) </symbol>");
         ifOut.add("  ".repeat(indent) + "<symbol> { </symbol>");
         indent += 1;
-        ArrayList<String> statements = new ArrayList(tokens.subList(tokenNo + 1, tokens.size() - 1));
+        ArrayList<String> statements = new ArrayList(ifTokens.subList(tokenNo + 1, ifTokens.size() - 1));
         tokenNo += statements.size();
         ifOut.addAll(compileStatements(statements));
         indent -= 1;
         ifOut.add("  ".repeat(indent) + "<symbol> } </symbol>");
+        if(elseTokens.size() > 0) {
+            ifOut.add("  ".repeat(indent) + "<keyword> else </keyword>");
+            ifOut.add("  ".repeat(indent) + "<symbol> { </symbol>");
+            indent += 1;
+            ArrayList<String> statements2 = new ArrayList(elseTokens.subList(1, elseTokens.size() - 1));
+            ifOut.addAll(compileStatements(statements2));
+            indent -= 1;
+            ifOut.add("  ".repeat(indent) + "<symbol> } </symbol>");
+        }
         ifOut.add("  ".repeat(indent) + "</ifStatement>");
         return ifOut;
     }
@@ -318,8 +327,17 @@ public class Parser {
             } else if (tokenKeyword.equals("keyword")
                     && tokenVal.equals("if")) {
                 ArrayList<String> ifTokens = getScope(tokens, currLine);
+                ArrayList<String> elseTokens = new ArrayList<>();
                 currLine += ifTokens.size();
-                statementsOut.addAll(compileIf(ifTokens));
+                if (currLine < tokens.size()) {
+                    if (getTokenClass(tokens.get(currLine)).equals("keyword")
+                            && getTokenValue(tokens.get(currLine)).equals("else")) {
+                        elseTokens = getScope(tokens, currLine);
+                        // ifTokens.addAll(elseTokens);
+                        currLine += elseTokens.size();
+                    }
+                }
+                statementsOut.addAll(compileIf(ifTokens, elseTokens));
             } else if (tokenKeyword.equals("keyword")
                     && tokenVal.equals("while")) {
                 ArrayList<String> whileTokens = getScope(tokens, currLine);
@@ -352,12 +370,13 @@ public class Parser {
         indent += 1;
         ArrayList<String> termTokens = getTerm(expressionTokens, 0);
         int currToken = termTokens.size();
-        if (getTokenClass(termTokens.get(0)).equals("symbol") && getTokenValue(termTokens.get(0)).equals("~")) {
+        if (getTokenClass(termTokens.get(0)).equals("symbol")
+                && Arrays.asList(unaryOperators).contains(getTokenValue(termTokens.get(0)))) {
             indent += 1;
             isUnaryop = true;
             currToken += 1;
             expressionOut.add("  ".repeat(indent) + "<term>");
-            expressionOut.add("  ".repeat(indent) + "<symbol> ~ </symbol>");
+            expressionOut.add("  ".repeat(indent) + "<symbol> " + getTokenValue(termTokens.get(0)) + " </symbol>");
             termTokens.remove(0);
         }
 
@@ -464,7 +483,8 @@ public class Parser {
                             bracketCount += 1;
                         }
                         if (getTokenValue(tokens.get(i)).equals(")")) {
-                            if(bracketCount == 0) break;
+                            if (bracketCount == 0)
+                                break;
                             bracketCount -= 1;
                         }
                         expressionList.add(tokens.get(i));
@@ -508,6 +528,14 @@ public class Parser {
     ArrayList<String> getTerm(ArrayList<String> expression, int startIndex) {
         ArrayList<String> term = new ArrayList<>();
         int bracketCount = 0;
+        if (expression.size() == 0)
+            return term;
+        if (Arrays.asList(unaryOperators).contains(getTokenValue(expression.get(startIndex)))) {
+            term.add(expression.get(startIndex));
+            startIndex += 1;
+            term.addAll(getTerm(expression, startIndex));
+            return term;
+        }
         for (int i = startIndex; i < expression.size(); i++) {
             String tokenClass = getTokenClass(expression.get(i));
             String tokenValue = getTokenValue(expression.get(i));
@@ -597,10 +625,10 @@ public class Parser {
     }
 
     String getTokenValue(String token) {
-        if(getTokenClass(token).equals("stringConstant")) {
-        return token.substring(token.indexOf("> ") + 2, token.lastIndexOf(" </"));
+        if (getTokenClass(token).equals("stringConstant")) {
+            return token.substring(token.indexOf("> ") + 2, token.lastIndexOf(" </"));
         } else {
-        return token.substring(token.indexOf(">") + 1, token.indexOf("</")).trim();
+            return token.substring(token.indexOf(">") + 1, token.indexOf("</")).trim();
         }
     }
 
