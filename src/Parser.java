@@ -21,7 +21,8 @@ public class Parser {
         ArrayList<String> output = new ArrayList<>();
         for (int i = 0; i < input.size(); i++) {
             String line = input.get(i);
-            if (line.contains("class")) {
+            // if (line.contains("class")) {
+            if (getTokenClass(line).equals("keyword") && getTokenValue(line).equals("class")) {
                 output.add("  ".repeat(indent) + "<class>");
                 output.addAll(compileClass(getScope(input, i)));
                 output.add("  ".repeat(indent) + "</class>");
@@ -76,22 +77,27 @@ public class Parser {
 
     ArrayList<String> compileSubroutine(ArrayList<String> tokens) {
         ArrayList<String> subroutineOut = new ArrayList<>();
-        // if(token0Class.equals("keyword") ||
-        // !token0Val.equals("constructor") ||
-        // token0Val.equals("function") ||
-        // token0Val.equals("method")) {
-        // System.out.println("Error: Expected keyword constructor, function, or
-        // method");
-        // return null;
-        // }
+
+        String token0Class = getTokenClass(tokens.get(0));
+        String token0Val = getTokenValue(tokens.get(0));
+
+        if (!token0Class.equals("keyword") ||
+                !(token0Val.equals("constructor") ||
+                token0Val.equals("function") ||
+                token0Val.equals("method"))) {
+            System.out.println("Error: Expected keyword constructor, function, or method");
+            return null;
+        }
 
         subroutineOut.add("  ".repeat(indent) + "<subroutineDec>");
         indent += 1;
-        subroutineOut.add("  ".repeat(indent) + "<keyword> " + getTokenValue(tokens.get(0)) + " </keyword>");
-        if (getTokenValue(tokens.get(0)).equals("constructor")) {
+        subroutineOut.add("  ".repeat(indent) + "<keyword> " + token0Val + " </keyword>");
+        if (token0Val.equals("constructor")) {
             subroutineOut.add("  ".repeat(indent) + "<identifier> " + getTokenValue(tokens.get(1)) + " </identifier>");
-        } else
+        } else {
             subroutineOut.add("  ".repeat(indent) + "<keyword> " + getTokenValue(tokens.get(1)) + " </keyword>");
+        }
+
         subroutineOut.add("  ".repeat(indent) + "<identifier> " + getTokenValue(tokens.get(2)) + " </identifier>");
 
         subroutineOut.add("  ".repeat(indent) + "<symbol> ( </symbol>");
@@ -265,7 +271,7 @@ public class Parser {
         ifOut.addAll(compileStatements(statements));
         indent -= 1;
         ifOut.add("  ".repeat(indent) + "<symbol> } </symbol>");
-        if(elseTokens.size() > 0) {
+        if (elseTokens.size() > 0) {
             ifOut.add("  ".repeat(indent) + "<keyword> else </keyword>");
             ifOut.add("  ".repeat(indent) + "<symbol> { </symbol>");
             indent += 1;

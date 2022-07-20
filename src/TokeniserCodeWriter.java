@@ -1,7 +1,7 @@
 import java.util.ArrayList;
 import java.util.Arrays;
 
-public class CodeWriter {
+public class TokeniserCodeWriter {
     ArrayList<String> tokenizer_xml(ArrayList<String> arrayList) {
         String[] keywordsStrings = { "class", "constructor", "function", "method", "field", "static", "var", "int",
                 "char", "boolean", "void", "true", "false", "null", "this", "let", "do", "if", "else", "while",
