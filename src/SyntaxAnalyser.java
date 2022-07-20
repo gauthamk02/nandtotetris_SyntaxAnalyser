@@ -3,113 +3,108 @@ import java.util.*;
 
 public class SyntaxAnalyser {
     public static void main(String args[]) {
+
         if (args.length != 1) {
             System.out.println("Argument Error!\nUsage: java SyntaxAnalyser <input file/folder>");
             return;
         }
 
-        String inFilename = args[0];
-        File argFile = new File(inFilename);
+        String argFilename = args[0];
+        File argFile = new File(argFilename);
+
         if (argFile.isFile()) {
-            convertFile(argFile.getPath());
+
+            String inFilename = argFile.getPath();
+            String outFilename = inFilename.substring(0, inFilename.lastIndexOf('.')) + "Output.xml";
+            ArrayList<String> jackFile = readfile(inFilename);
+
+            Tokeniser tokeniser = new Tokeniser(jackFile);
+            ArrayList<String> tokens = tokeniser.tokenise();
+
+            Parser parser = new Parser(tokens);
+            ArrayList<String> outFile = parser.parse();
+
+            writetoFile(outFile, outFilename);
+            System.out.println("Output File stored at " + outFilename);
+
         } else if (argFile.isDirectory()) {
             File[] files = argFile.listFiles();
             for (File file : files) {
-                if (file.getPath().endsWith("T.xml"))
-                    convertFile(file.getPath());
+                if (file.getPath().endsWith(".jack")) {
+
+                    String inFilename = file.getPath();
+                    String outFilename = inFilename.substring(0, inFilename.lastIndexOf('.')) + "Output.xml";
+                    ArrayList<String> jackFile = readfile(inFilename);
+
+                    Tokeniser tokeniser = new Tokeniser(jackFile);
+                    ArrayList<String> tokens = tokeniser.tokenise();
+
+                    Parser parser = new Parser(tokens);
+                    ArrayList<String> outFile = parser.parse();
+
+                    writetoFile(outFile, outFilename);
+                    System.out.println("Output File stored at " + outFilename);
+                }
             }
         } else {
             System.out.println("File/Folder Error!\nUsage: java SyntaxAnalyser <input file/folder>");
         }
-        // String outFilename = inFilename.substring(0, inFilename.lastIndexOf('.')) +
-        // "Test.xml";
-        // File infile = new File(inFilename);
-        // Scanner filein;
-        // ArrayList<String> tokens = new ArrayList<>();
-        // ArrayList<String> xmlFile = new ArrayList<>();
-
-        // try {
-        // filein = new Scanner(infile);
-        // while (filein.hasNextLine()) {
-        // String line = filein.nextLine();
-
-        // // Remove inline comments and and skip comment lines
-        // if (line.startsWith("//") || line.isEmpty())
-        // continue;
-        // if (line.contains("//")) {
-        // line = line.substring(0, line.indexOf("//"));
-        // }
-
-        // //TODO: Check if replace function is necessary
-        // tokens.add(line.replaceAll("[\\s&&[^ ]]", ""));
-        // }
-
-        // Parser parser = new Parser(tokens);
-
-        // xmlFile = parser.parse();
-        // // for(String line : xmlFile) {
-        // // System.out.println(line);
-        // // }
-        // writetoFile(xmlFile, outFilename);
-
-        // } catch (IOException e) {
-        // System.out.println(e);
-        // System.out.println(e.getStackTrace());
-        // return;
-        // }
-
-        // System.out.println("Tokens stored at " + outFilename);
-        // filein.close();
     }
 
-    static void convertFile(String inFilename) {
-        String outFilename = inFilename.substring(0, inFilename.lastIndexOf('.')) + "Test.xml";
-        File infile = new File(inFilename);
+    static ArrayList<String> readfile(String fileName) {
+
+        File infile = new File(fileName);
         Scanner filein;
-        ArrayList<String> tokens = new ArrayList<>();
-        ArrayList<String> xmlFile = new ArrayList<>();
+        ArrayList<String> jackFile = new ArrayList<>();
 
         try {
             filein = new Scanner(infile);
+            boolean blockComment = false;
             while (filein.hasNextLine()) {
                 String line = filein.nextLine();
 
-                // Remove inline comments and and skip comment lines
-                if (line.startsWith("//") || line.isEmpty())
+                // Remove inline comments and and skip comment lines and block comments
+                if (line.trim().startsWith("//") || line.isEmpty())
                     continue;
+                if (line.trim().startsWith("/*")) {
+                    if (!line.trim().endsWith("*/")) {
+                        blockComment = true;
+                    }
+                    continue;
+                }
+                if (blockComment) {
+                    if (line.trim().endsWith("*/")) {
+                        blockComment = false;
+                    }
+                    continue;
+                }
                 if (line.contains("//")) {
                     line = line.substring(0, line.indexOf("//"));
                 }
 
-                // TODO: Check if replace function is necessary
-                tokens.add(line.replaceAll("[\\s&&[^ ]]", ""));
+                jackFile.add(line.replaceAll("[\\s&&[^ ]]", ""));
             }
 
-            Parser parser = new Parser(tokens);
-
-            xmlFile = parser.parse();
-            // for(String line : xmlFile) {
-            // System.out.println(line);
-            // }
-            writetoFile(xmlFile, outFilename);
-
-        } catch (IOException e) {
-            System.out.println(e);
-            System.out.println(e.getStackTrace());
-            return;
+            filein.close();
+        } catch (FileNotFoundException e) {
+            System.out.println("File not found!");
+            System.exit(1);
         }
 
-        System.out.println("Output File stored at " + outFilename);
-        filein.close();
+        return jackFile;
     }
 
-    static void writetoFile(ArrayList<String> list, String filename) throws IOException {
-        FileWriter fw = new FileWriter(filename);
-        for (String str : list) {
-            fw.write(str + System.lineSeparator());
-        }
+    static void writetoFile(ArrayList<String> list, String filename) {
+        try {
+            FileWriter fw = new FileWriter(filename);
+            for (String str : list) {
+                fw.write(str + System.lineSeparator());
+            }
 
-        fw.close();
+            fw.close();
+        } catch (Exception e) {
+            System.out.println(e);
+        }
     }
 
     static void printFile(ArrayList<String> file) {
